@@ -1,11 +1,13 @@
-class PayslipsController < ActionController::Base
-  skip_forgery_protection
+class PayslipsController < ApplicationController
+  before_action :set_payslip, only: %i[ show update destroy ]
 
+  # GET /payslips
   def index
-    @payslips = Payslip.all
-    render json: { "salary_computations" => @payslips.as_json(:except => :id) }.to_json
+    payslip_data = { "salary_computations" => Payslip.all.as_json(:except => :id) }
+    render json:  payslip_data.to_json
   end
 
+  # POST /payslip/generate
   def generate_monthly_payslip
     @tb = [
       [0,20000,0],
@@ -27,6 +29,8 @@ class PayslipsController < ActionController::Base
     gross_monthly_income = annual_salary / 12
     monthly_income_tax = calc_income_tax(annual_salary) / 12
     net_monthly_income = gross_monthly_income - monthly_income_tax
+
+    create(DateTime.current, emp_name, "$#{sprintf('%.2f', annual_salary)}", "$#{sprintf('%.2f', monthly_income_tax)}")    
 
     render json: {
       "employee_name": emp_name,
@@ -53,6 +57,11 @@ class PayslipsController < ActionController::Base
       end
     end      
     return total_taxes
+  end
+
+  #Insert into database 
+  def create(timestamp, emp_name, annual_salary, monthly_income_tax)
+    payslip = Payslip.create(time_stamp: timestamp, employee_name: emp_name, annual_salary: annual_salary, monthly_income_tax: monthly_income_tax)
   end
 
   private
